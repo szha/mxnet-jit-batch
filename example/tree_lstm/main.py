@@ -16,7 +16,11 @@
 # under the License.
 
 # This example is inspired by https://github.com/dasguptar/treelstm.pytorch
-import argparse, cPickle, math, os, random
+import argparse, math, os, random
+try:
+   import cPickle as pickle
+except:
+   import pickle
 import logging
 logging.basicConfig(level=logging.INFO)
 import numpy as np
@@ -73,7 +77,7 @@ batch_size = opt.batch_size
 # read dataset
 if os.path.exists('dataset.pkl'):
     with open('dataset.pkl', 'rb') as f:
-        train_iter, dev_iter, test_iter, vocab = cPickle.load(f)
+        train_iter, dev_iter, test_iter, vocab = pickle.load(f)
 else:
     root_dir = opt.data
     segments = ['train', 'dev', 'test']
@@ -86,7 +90,7 @@ else:
     train_iter, dev_iter, test_iter = [SICKDataIter(os.path.join(root_dir, segment), vocab, num_classes)
                                        for segment in segments]
     with open('dataset.pkl', 'wb') as f:
-        cPickle.dump([train_iter, dev_iter, test_iter, vocab], f)
+        pickle.dump([train_iter, dev_iter, test_iter, vocab], f)
 
 logging.info('==> SICK vocabulary size : %d ' % vocab.size)
 logging.info('==> Size of train data   : %d ' % len(train_iter))
@@ -134,7 +138,7 @@ def test(ctx, data_iter, best, mode='validation', num_iter=-1):
             fold_preds.append(z)
             # update weight after every batch_size samples, or when reaches last sample
             if (j+1) % batch_size == 0 or (j+1) == num_samples:
-                preds.append(fold.apply([fold_preds], True)[0])
+                preds.append(fold([fold_preds], True)[0])
                 fold_preds = []
     else:
         for j in tqdm(range(num_samples), desc='Testing in {} mode'.format(mode)):
@@ -197,7 +201,7 @@ def train(epoch, ctx, train_data, dev_data):
                 # update weight after every batch_size samples, or when reaches last sample
                 if (j+1) % batch_size == 0 or (j+1) == num_samples:
                     with ag.record():
-                        fold_preds, loss = fold.apply([fold_preds, losses], True)
+                        fold_preds, loss = fold([fold_preds, losses], True)
                         preds.append(fold_preds)
                         losses = []
                         fold_preds = []

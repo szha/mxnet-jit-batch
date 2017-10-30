@@ -19,11 +19,11 @@ class TestBlock(nn.Block):
     def concat(self, axis, *nodes):
         return nd.concat(*nodes, dim=axis)
 
-    def embed(self, idx):
-        return self.embed(idx)
+    def embed(self, indices):
+        return self.embed(indices)
 
-    def embed2(self, idx):
-        return self.embed(idx), self.embed(idx)
+    def embed2(self, indices):
+        return self.embed(indices), self.embed(indices)
 
     def predict(self, embed):
         return self.out(embed)
@@ -47,7 +47,7 @@ def test_rnn():
     r = f.add(t.predict, 0, mx.cpu(), r)
 
     t.initialize()
-    enc = f.apply([[r]])[0]
+    enc = f([[r]])[0]
     assert enc.shape == (1, 10)
 
 def test_no_batch():
@@ -62,7 +62,7 @@ def test_no_batch():
         res.append(f.add(t.dot, 0, mx.cpu(), v[i % 10], d))
 
     t.initialize()
-    enc = f.apply([res])[0]
+    enc = f([res])[0]
     assert enc.shape == (100, 15)
 
 def test_rnn_cell():
@@ -83,7 +83,7 @@ def test_rnn_cell():
             state = state.split(2)
             outputs.append(out)
         fold_result.extend(outputs)
-    result = f.apply([fold_result], True)[0]
+    result = f([fold_result], True)[0]
     assert_almost_equal(result.asnumpy(), mx.nd.concat(*regular_result, dim=0).asnumpy())
 
 def test_combined():
@@ -98,7 +98,7 @@ def test_combined():
         input_data = mx.nd.random.uniform(shape=(1, length, 5))
         cell_out = [f.add(t.predict, 0, mx.cpu(), r[0]) for r in cell.fold_unroll(f, length, input_data)]
         fold_output.extend(cell_out)
-    f.apply([fold_output])[0]
+    f([fold_output])[0]
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class Similarity(nn.HybridBlock):
         # lvec and rvec will be tree_lstm cell states at roots
         mult_dist = F.broadcast_mul(lvec, rvec)
         abs_dist = F.abs(lvec-rvec)
-        vec_dist = F.concat(*[mult_dist, abs_dist],dim=1)
+        vec_dist = F.concat(mult_dist, abs_dist,dim=1)
         out = F.log_softmax(self.wp(F.sigmoid(self.wh(vec_dist))))
         return out
 

@@ -1,5 +1,9 @@
 import os
-import cPickle
+try:
+   import cPickle as pickle
+except:
+   import pickle
+
 import numpy as np
 
 import mxnet as mx
@@ -27,7 +31,7 @@ def test_tree_lstm():
     l_sentences = mx.nd.load(os.path.join(CURRENT_DIR, 'l_sentences.nd'))
     r_sentences = mx.nd.load(os.path.join(CURRENT_DIR, 'r_sentences.nd'))
     with open(os.path.join(CURRENT_DIR, 'trees.pkl'), 'rb') as f:
-        l_trees, r_trees = cPickle.load(f)
+        l_trees, r_trees = pickle.load(f)
 
     rnn_hidden_size, sim_hidden_size, num_classes = 150, 50, 5
     net = SimilarityTreeLSTM(sim_hidden_size, rnn_hidden_size, 2413, 300, num_classes)
@@ -52,18 +56,18 @@ def test_tree_lstm():
             fold_preds.append(z_fold)
 
             if (i+1) % batch_size == 0 or (i+1) == num_samples:
-                fold_outs = fold.apply([fold_preds])[0]
+                fold_outs = fold([fold_preds])[0]
                 outs = mx.nd.concat(*[net(mx.nd, l_sent, r_sent, l_tree, r_tree)
                                       for l_sent, r_sent, l_tree, r_tree in inputs], dim=0)
                 if not almost_equal(fold_outs.asnumpy(), outs.asnumpy()):
-                    print fold_preds
-                    print 'l_sents: ', l_sent, l_sentences[i-1]
-                    print 'r_sents: ', r_sent, r_sentences[i-1]
-                    print '\n'.join((str(l_tree), str_tree(l_tree),
+                    print(fold_preds)
+                    print('l_sents: ', l_sent, l_sentences[i-1])
+                    print('r_sents: ', r_sent, r_sentences[i-1])
+                    print('\n'.join((str(l_tree), str_tree(l_tree),
                                      str(r_tree), str_tree(r_tree),
                                      str(l_trees[i-1]), str_tree(l_trees[i-1]),
                                      str(r_trees[i-1]), str_tree(r_trees[i-1]),
-                                     str(fold)))
+                                     str(fold))))
                     assert_almost_equal(fold_outs.asnumpy(), outs.asnumpy())
                 fold_preds = []
                 inputs = []

@@ -8,7 +8,7 @@ This animation from [Tensorflow Fold](https://github.com/tensorflow/fold) shows 
 
 ## Performance
 
-The following results are obtained from MXNet Gluon implementation of [treelstm.pytorch](https://github.com/dasguptar/treelstm.pytorch), which can be found in [gluon_tree_lstm](https://github.com/szha/mxnet-fold/tree/master/gluon_tree_lstm) folder. It implements Child-sum Tree-LSTM by [Tai et al.](https://arxiv.org/abs/1503.00075) on the semantic-relatedness task on SICK dataset. We run both  [treelstm.pytorch](https://github.com/dasguptar/treelstm.pytorch) and [gluon_tree_lstm](https://github.com/szha/mxnet-fold/tree/master/gluon_tree_lstm), and compare the throughput (i.e samples per second).
+The following results are obtained from MXNet Gluon implementation of [treelstm.pytorch](https://github.com/dasguptar/treelstm.pytorch), which can be found in [example/tree_lstm](https://github.com/szha/mxnet-fold/tree/master/example/tree_lstm) folder . It implements Child-sum Tree-LSTM by [Tai et al.](https://arxiv.org/abs/1503.00075) on the semantic-relatedness task on SICK dataset. We run both [treelstm.pytorch](https://github.com/dasguptar/treelstm.pytorch) and [tree_lstm](https://github.com/szha/mxnet-fold/tree/master/example/tree_lstm), and compare the throughput (i.e samples per second).
 
 Evaluation platforms are:
 - EC2 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/#c4) with

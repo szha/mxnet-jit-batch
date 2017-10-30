@@ -71,7 +71,7 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
 
         # sum of children states
         children_states = list(pairwise(children_states))
-        hs = F.add_n(*[state[0] for state in children_states], name='%shs'%name) # (N, C)
+        hs = F.add_n(*(state[0] for state in children_states), name='%shs'%name) # (N, C)
         # concatenation of children hidden states
         hc = F.concat(*(F.expand_dims(state[0], axis=1) for state in children_states), dim=1,
                       name='%shc') # (N, K, C)
@@ -100,7 +100,7 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
         next_h = F._internal._mul(out_gate, F.Activation(next_c, act_type='tanh'),
                                   name='%sout'%name)
 
-        return next_h, [next_h, next_c]
+        return next_h, (next_h, next_c)
 
     def encode(self, F, inputs, tree):
         root_input = inputs[tree.idx].expand_dims(0)

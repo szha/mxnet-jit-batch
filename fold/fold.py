@@ -41,9 +41,11 @@ def _split_batch(arg, batch_axis, arg_size):
 
 def _batch_args(arg_lists, arg_types, values, batch_axis):
     res = []
+    arg_size = 1
     for arg, arg_type in zip(arg_lists, arg_types):
+        arg_size = len(arg)
         if arg_type[0] == 1 and arg[0].batch:
-            out = nd.concat(*(x.get(values) for x in arg), dim=batch_axis)
+            out = nd.concat(*(x(values) for x in arg), dim=batch_axis)
         elif arg_type[0] == -1:
             out = nd.concat(*arg, dim=batch_axis)
         else:
@@ -52,9 +54,9 @@ def _batch_args(arg_lists, arg_types, values, batch_axis):
                     "Can not use more than one of no-batch argument, got: %s." % str(arg)
             out = arg[0]
             if arg_type[0] == 1:
-                out = out.get(values)
+                out = out(values)
         res.append(out)
-    return tuple(res), len(arg_lists[0])
+    return tuple(res), arg_size
 
 def _type_code(arg):
     return isinstance(arg, _Node)-isinstance(arg, nd.NDArray)
@@ -69,7 +71,7 @@ class _Node(object):
         self.step = step
         self.index = index
         self.split_idx = ()
-        self.batch_arg_size = 1
+        self.batch = True
         self._hash = None
         self.expand_axis = None
 
@@ -79,7 +81,7 @@ class _Node(object):
             result.split_idx = self.split_idx + (i,)
             return result
         elif isinstance(i, slice):
-            assert i.stop is not None and i.stop > i.start, \
+            assert i.stop is not None and (i.start is None or i.stop > i.start), \
                     'Node slices must have non-negative start and stop. Got: %s' % (i)
             nodes = []
             for idx in range(i.stop)[i]:
@@ -97,20 +99,10 @@ class _Node(object):
         return self[:num]
 
     def no_batch(self):
-        assert self.batch_arg_size <= 1, 'Cannot set multi-arg node as no-batch.'
-        self.batch_arg_size = 0
+        self.batch = False
         return self
 
-    def multi_arg(self, num_args):
-        assert self.batch_arg_size == 1, 'Only regular node can be set as multi-arg'
-        self.batch_arg_size = num_args
-        return self
-
-    @property
-    def batch(self):
-        return self.batch_arg_size > 0
-
-    def get(self, values):
+    def __call__(self, values):
         out = values[self.step][self.op_sig][self.index]
         if self.split_idx:
             for i in self.split_idx:
@@ -150,7 +142,7 @@ class Fold(object):
             self.cached_nodes[op_sig][flat_args_sig] = node
         return self.cached_nodes[op_sig][flat_args_sig]
 
-    def apply(self, nodes, reset=False):
+    def __call__(self, nodes, reset=False):
         """Apply current fold to given neural module."""
         values = {}
         if reset:
@@ -181,7 +173,7 @@ class Fold(object):
             print(traceback.format_exc())
             for lst in nodes:
                 if isinstance(lst[0], _Node):
-                    print(', '.join([str(x.get(values).size()) for x in lst]))
+                    print(', '.join([str(x(values).size()) for x in lst]))
             raise
         finally:
             if reset:
