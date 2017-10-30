@@ -172,7 +172,8 @@ class Fold(object):
                 if reset:
                     self.steps[step][op_signature] = None
                 args, _ = _regroup(args, fmt)
-                values[step][op_signature] = _split_batch(op(*args), batch_axis, arg_size)
+                with ctx:
+                    values[step][op_signature] = _split_batch(op(*args), batch_axis, arg_size)
         try:
             return [_batch_args([n], [(1,)], values, batch_axis)[0][0] for n in nodes]
         except Exception:

@@ -13,7 +13,7 @@ The following results are obtained from MXNet Gluon implementation of [treelstm.
 Evaluation platforms are:
 - EC2 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/#c4) with
   - CPU: Intel Xeon E5-2666 v3 (Haswell) processors
-- EC2 [P2.8xlarge](https://aws.amazon.com/ec2/instance-types/#p2) with
+- EC2 [P2.xlarge](https://aws.amazon.com/ec2/instance-types/#p2) with
   - CPU: Intel Xeon E5-2686v4 (Broadwell) Processors
   - GPU: NVIDIA K80 GPU
   - CUDA 8
@@ -24,8 +24,8 @@ The following speed benchmark is performed with the following settings:
 - Pytorch:
   - [0.2.0.post3](http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp27-cp27mu-manylinux1_x86_64.whl).
 - MXNet:
-  - [mxnet-cu80mkl==0.12.0b20171027](https://pypi.python.org/pypi?:action=display&name=mxnet-cu80mkl&version=0.12.0b20171027) for GPU test.
-  - [mxnet-mkl==0.12.0b20171027](https://pypi.python.org/pypi?:action=display&name=mxnet-mkl&version=0.12.0b20171027) for CPU test.
+  - [mxnet-cu80mkl==0.12.0b20171030](https://pypi.python.org/pypi?:action=display&name=mxnet-cu80mkl&version=0.12.0b20171030) for GPU test.
+  - [mxnet-mkl==0.12.0b20171030](https://pypi.python.org/pypi?:action=display&name=mxnet-mkl&version=0.12.0b20171030) for CPU test.
 
 
 #### CPU
@@ -35,16 +35,16 @@ The following results are obtained on EC2 [c4.8xlarge](https://aws.amazon.com/ec
 | Implementation       |     Training     |    Inference     |
 |----------------------|------------------|------------------|
 | MXNet Gluon w/o Fold | 33.77 samples/s  | 50.46 samples/s  |
-| MXNet Gluon w/ Fold  | 157.43 samples/s | 212.42 samples/s |
+| MXNet Gluon w/ Fold  | 201.11 samples/s | 315.54 samples/s |
 | PyTorch              | 5.10 samples/s   | 27.41 samples/s  |
 
 
 #### GPU
 
-The following results are obtained on EC2 [P2.8xlarge](https://aws.amazon.com/ec2/instance-types/#p2) host.
+The following results are obtained on EC2 [P2.xlarge](https://aws.amazon.com/ec2/instance-types/#p2) host.
 
 | Implementation       |     Training     |    Inference     |
 |----------------------|------------------|------------------|
 | MXNet Gluon w/o Fold | 26.64 samples/s  | 39.10 samples/s  |
-| MXNet Gluon w/ Fold  | 169.92 samples/s | 213.69 samples/s |
+| MXNet Gluon w/ Fold  | 235.48 samples/s | 296.98 samples/s |
 | PyTorch              | 13.38 samples/s  | 42.77 samples/s  |
