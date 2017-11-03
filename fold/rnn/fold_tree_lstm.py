@@ -120,7 +120,6 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
                     self.fold_encode(fold, F, inputs, c)[1].split(2)
                     for c in tree.children)
         else:
-            root_children_states = fold.add(self.begin_state,
-                                            0, root_input.context, 1).no_batch().split(2)
+            root_children_states = fold.record(0, self.begin_state, 1).no_batch().split(2)
 
-        return fold.add(self, 0, root_input.context, F, root_input, *root_children_states)
+        return fold.record(0, self, F, root_input, *root_children_states)

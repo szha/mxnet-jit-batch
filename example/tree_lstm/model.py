@@ -45,5 +45,5 @@ class SimilarityTreeLSTM(nn.Block):
         r_embed = embeddings[l_len:(l_len+r_len)]
         lstate = self.childsumtreelstm.fold_encode(fold, F, l_embed, l_tree)[1][1]
         rstate = self.childsumtreelstm.fold_encode(fold, F, r_embed, r_tree)[1][1]
-        out = fold.add(self.similarity, 0, l_inputs.context, lstate, rstate)
+        out = fold.record(0, self.similarity, lstate, rstate)
         return out

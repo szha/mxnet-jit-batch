@@ -53,8 +53,7 @@ class FoldLSTMCell(LSTMCell):
         states = begin_state
         outputs = []
         for i in range(length):
-            output, states = fold.add(self, 0, begin_state[0].context,
-                                      inputs[i], states).split(2)
+            output, states = fold.record(0, self, inputs[i], states).split(2)
             outputs.append(output)
             states = states.split(2)
 

@@ -30,6 +30,7 @@ import mxnet as mx
 from mxnet import gluon
 from mxnet import autograd as ag
 
+import dataset
 from dataset import Vocab, SICKDataIter
 from model import SimilarityTreeLSTM
 
@@ -37,27 +38,27 @@ from fold import Fold
 
 parser = argparse.ArgumentParser(description='TreeLSTM for Sentence Similarity on Dependency Trees')
 parser.add_argument('--data', default='data/sick/',
-                    help='path to raw dataset. required when preprocessed dataset is not available.')
+                    help='path to raw dataset. optional')
 parser.add_argument('--word_embed', default='data/glove/glove.840B.300d.txt',
-                    help='directory with word embeddings. required when preprocessed dataset is not available.')
+                    help='directory with word embeddings. optional')
 parser.add_argument('--batch-size', type=int, default=256,
-                    help='training batch size per device (CPU/GPU).')
-parser.add_argument('--epochs', default=50, type=int,
-                    help='number of total epochs to run')
+                    help='training batch size per device (CPU/GPU). (default: 256)')
+parser.add_argument('--epochs', default=20, type=int,
+                    help='number of total epochs to run. (default: 20)')
 parser.add_argument('--lr', default=0.02, type=float,
-                    help='initial learning rate')
+                    help='initial learning rate. (default: 0.02)')
 parser.add_argument('--wd', default=0.0001, type=float,
-                    help='weight decay factor')
+                    help='weight decay factor. (default: 0.0001)')
 parser.add_argument('--optimizer', default='adagrad',
                     help='optimizer (default: adagrad)')
 parser.add_argument('--seed', default=123, type=int,
                     help='random seed (default: 123)')
 parser.add_argument('--use-gpu', action='store_true',
-                    help='whether to use GPU.')
+                    help='enable the use of GPU.')
 parser.add_argument('--fold', action='store_true',
-                    help='whether to use fold for dynamic batching.')
+                    help='enable the use of fold for dynamic batching.')
 parser.add_argument('--inference-only', action='store_true',
-                    help='whether to test inference on training dataset.')
+                    help='run in inference-only mode.')
 
 opt = parser.parse_args()
 
@@ -99,6 +100,9 @@ logging.info('==> Size of test data    : %d ' % len(test_iter))
 
 net = SimilarityTreeLSTM(sim_hidden_size, rnn_hidden_size, vocab.size, vocab.embed.shape[1], num_classes)
 net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=context[0])
+l_tree, l_sent, r_tree, r_sent, _ = train_iter.next()
+train_iter.reset()
+net(mx.nd, l_sent, r_sent, l_tree, r_tree)
 net.embed.weight.set_data(vocab.embed.as_in_context(context[0]))
 
 # use pearson correlation and mean-square error for evaluation
@@ -196,7 +200,7 @@ def train(epoch, ctx, train_data, dev_data):
                     # calculate loss
                     with l_sent.context:
                         label = to_target(label)
-                    loss = fold.add(Loss, 0, l_sent.context, z, label)
+                    loss = fold.record(0, Loss, z, label)
                     losses.append(loss)
                 # update weight after every batch_size samples, or when reaches last sample
                 if (j+1) % batch_size == 0 or (j+1) == num_samples:

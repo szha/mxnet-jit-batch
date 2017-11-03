@@ -38,15 +38,16 @@ class TestBlock(nn.Block):
 def test_rnn():
     t = TestBlock()
     f = fold.Fold()
-    v1 = f.add(t.embed2, 0, mx.cpu(), mx.nd.array([1]))[0]
-    v2 = f.add(t.embed2, 0, mx.cpu(), mx.nd.array([2]))[1]
+    v1 = f.record(0, t.embed2, mx.nd.array([1]))[0]
+    v2 = f.record(0, t.embed2, mx.nd.array([2]))[1]
     r = v1
     for i in range(10):
-        r = f.add(t.concat, 0, mx.cpu(), 1, v1, r)
-        r = f.add(t.concat, 0, mx.cpu(), 1, r, v2)
-    r = f.add(t.predict, 0, mx.cpu(), r)
+        r = f.record(0, t.concat, 1, v1, r)
+        r = f.record(0, t.concat, 1, r, v2)
+    r = f.record(0, t.predict, r)
 
     t.initialize()
+    print(f)
     enc = f([[r]])[0]
     assert enc.shape == (1, 10)
 
@@ -55,13 +56,14 @@ def test_no_batch():
     f = fold.Fold()
     v = []
     for i in range(15):
-        v.append(f.add(t.embed, 0, mx.cpu(), mx.nd.array([i % 10])))
-    d = f.add(t.concat, 0, mx.cpu(), 0, *v).no_batch()
+        v.append(f.record(0, t.embed, mx.nd.array([i % 10])))
+    d = f.record(0, t.concat, 0, *v).no_batch()
     res = []
     for i in range(100):
-        res.append(f.add(t.dot, 0, mx.cpu(), v[i % 10], d))
+        res.append(f.record(0, t.dot, v[i % 10], d))
 
     t.initialize()
+    print(f)
     enc = f([res])[0]
     assert enc.shape == (100, 15)
 
@@ -79,10 +81,11 @@ def test_rnn_cell():
         outputs = []
         split_input = input_data.split(length, squeeze_axis=True)
         for i in range(length):
-            out, state = f.add(cell, 0, mx.cpu(), split_input[i], state).split(2)
+            out, state = f.record(0, cell, split_input[i], state).split(2)
             state = state.split(2)
             outputs.append(out)
         fold_result.extend(outputs)
+    print(f)
     result = f([fold_result], True)[0]
     assert_almost_equal(result.asnumpy(), mx.nd.concat(*regular_result, dim=0).asnumpy())
 
@@ -96,8 +99,10 @@ def test_combined():
     for _ in range(3):
         length = np.random.randint(3, 20)
         input_data = mx.nd.random.uniform(shape=(1, length, 5))
-        cell_out = [f.add(t.predict, 0, mx.cpu(), r[0]) for r in cell.fold_unroll(f, length, input_data)]
+        cell_out = [f.record(0, t.predict, r[0])
+                    for r in cell.fold_unroll(f, length, input_data)]
         fold_output.extend(cell_out)
+    print(f)
     f([fold_output])[0]
 
 
