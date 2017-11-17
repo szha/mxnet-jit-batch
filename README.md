@@ -32,19 +32,21 @@ The following speed benchmark is performed with the following settings:
 
 The following results are obtained on EC2 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/#c4) host.
 
-| Implementation       |     Training     |    Inference     |
-|----------------------|------------------|------------------|
-| MXNet Gluon w/o Fold | 33.77 samples/s  | 50.46 samples/s  |
-| MXNet Gluon w/ Fold  | 201.11 samples/s | 315.54 samples/s |
-| PyTorch              | 5.10 samples/s   | 27.41 samples/s  |
+| Implementation                         |     Training     |    Inference     |
+|----------------------------------------|------------------|------------------|
+| MXNet Gluon w/o Fold                   | 33.77 samples/s  | 50.46 samples/s  |
+| MXNet Gluon w/ Fold                    | 201.11 samples/s | 315.54 samples/s |
+| PyTorch from source (0.4.0a0+1c1519d)  | 16.88 samples/s  | 129.92 samples/s |
+| PyTorch 0.2.0-post3                    | 5.10 samples/s   | 27.41 samples/s  |
 
 
 #### GPU
 
 The following results are obtained on EC2 [P2.xlarge](https://aws.amazon.com/ec2/instance-types/#p2) host.
 
-| Implementation       |     Training     |    Inference     |
-|----------------------|------------------|------------------|
-| MXNet Gluon w/o Fold | 26.64 samples/s  | 39.10 samples/s  |
-| MXNet Gluon w/ Fold  | 235.48 samples/s | 296.98 samples/s |
-| PyTorch              | 13.38 samples/s  | 42.77 samples/s  |
+| Implementation                         |     Training     |    Inference     |
+|----------------------------------------|------------------|------------------|
+| MXNet Gluon w/o Fold                   | 26.64 samples/s  | 39.10 samples/s  |
+| MXNet Gluon w/ Fold                    | 235.48 samples/s | 296.98 samples/s |
+| PyTorch from source (0.4.0a0+1c1519d)  |                  |                  |
+| PyTorch 0.2.0-post3                    | 13.38 samples/s  | 42.77 samples/s  |
