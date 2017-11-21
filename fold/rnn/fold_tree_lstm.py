@@ -118,7 +118,7 @@ class ChildSumLSTMCell(rnn.HybridRecurrentCell):
 
     @staticmethod
     def fold_encode(fold, cells, inputs, tree):
-        root_input = inputs[tree.idx]
+        root_input = inputs[tree.idx].expand_dims(0)
         if tree.children:
             root_children_states = list(zip(*(ChildSumLSTMCell.fold_encode(fold, cells, inputs, c)[1].split(2)
                                               for c in tree.children)))
