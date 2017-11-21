@@ -24,14 +24,9 @@ from mxnet.gluon import Block, nn, rnn
 from mxnet.gluon.parameter import Parameter
 from mxnet.gluon.rnn.rnn_cell import _format_sequence, _get_begin_state
 
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
-
-class ChildSumLSTMCell(rnn.RecurrentCell):
+class ChildSumLSTMCell(rnn.HybridRecurrentCell):
     def __init__(self, hidden_size,
+                 num_children,
                  i2h_weight_initializer=None,
                  hs2h_weight_initializer=None,
                  hc2h_weight_initializer=None,
@@ -40,6 +35,7 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
                  hc2h_bias_initializer='zeros',
                  input_size=0, prefix=None, params=None):
         super(ChildSumLSTMCell, self).__init__(prefix=prefix, params=params)
+        self.num_children = num_children
         with self.name_scope():
             self._hidden_size = hidden_size
             self._input_size = input_size
@@ -61,8 +57,11 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
     def _alias(self):
         return 'childsum_lstm'
 
-    def forward(self, F, inputs, *children_states):
+    def hybrid_forward(self, F, inputs, children_states):
         name = '{0}{1}_'.format(self.prefix, self._alias)
+        children_hidden_states, children_cell_states = children_states
+        assert len(children_cell_states) == len(children_cell_states)
+        assert not self.num_children or len(children_cell_states) == self.num_children
         # notation: N for batch size, C for hidden state dimensions, K for number of children.
         # FC for i, f, u, o gates (N, 4*C), from input to hidden
         i_act_i2h, f_act_i2h, u_act_i2h, o_act_i2h = self.i2h(inputs).split(num_outputs=4)
@@ -70,20 +69,19 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
         iuo_i2h = F.concat(i_act_i2h, u_act_i2h, o_act_i2h, dim=1) # (N, C*3)
 
         # sum of children states
-        children_states = list(pairwise(children_states))
-        hs = F.add_n(*(state[0] for state in children_states), name='%shs'%name) # (N, C)
+        hs = F.add_n(*children_hidden_states, name='%shs'%name) # (N, C)
         # concatenation of children hidden states
-        hc = F.concat(*(F.expand_dims(state[0], axis=1) for state in children_states), dim=1,
+        hc = F.concat(*(F.expand_dims(state, axis=1) for state in children_hidden_states), dim=1,
                       name='%shc') # (N, K, C)
         # concatenation of children cell states
-        cc = F.concat(*(F.expand_dims(state[1], axis=1) for state in children_states), dim=1,
+        cc = F.concat(*(F.expand_dims(state, axis=1) for state in children_cell_states), dim=1,
                       name='%scs') # (N, K, C)
 
         # calculate activation for forget gate. addition in f_act is done with broadcast
-        f_act = f_act_i2h.expand_dims(1) + self.hc2h(hc) # (N, K, C)
+        f_act = F.broadcast_add(f_act_i2h.expand_dims(1), self.hc2h(hc)) # (N, K, C)
 
         # FC for i, u, o gates, from summation of children states to hidden state
-        iuo_i2h = iuo_i2h + self.hs2h(hs)
+        iuo_i2h = F.broadcast_add(iuo_i2h, self.hs2h(hs))
 
         i_act, u_act, o_act = F.SliceChannel(iuo_i2h, num_outputs=3,
                                              name='%sslice'%name) # (N, C)*3
@@ -102,24 +100,29 @@ class ChildSumLSTMCell(rnn.RecurrentCell):
 
         return next_h, (next_h, next_c)
 
-    def encode(self, F, inputs, tree):
+    @staticmethod
+    def encode(cells, inputs, tree):
         root_input = inputs[tree.idx].expand_dims(0)
         if tree.children:
-            root_children_states = chain.from_iterable(self.encode(F, inputs, c)[1]
-                                                       for c in tree.children)
+            root_children_states = list(zip(*(ChildSumLSTMCell.encode(cells, inputs, c)[1]
+                                              for c in tree.children)))
         else:
             with root_input.context:
-                root_children_states = self.begin_state(1)
+                root_children_states = list(zip(*[cells[0].begin_state(1)]))
+        num_children = len(tree.children)
+        return cells[num_children](root_input, root_children_states)
 
-        return self(F, root_input, *root_children_states)
+    @staticmethod
+    def cell_forward(cell, inputs, states):
+        return cell(inputs, states)
 
-    def fold_encode(self, fold, F, inputs, tree):
+    @staticmethod
+    def fold_encode(fold, cells, inputs, tree):
         root_input = inputs[tree.idx]
         if tree.children:
-            root_children_states = chain.from_iterable(
-                    self.fold_encode(fold, F, inputs, c)[1].split(2)
-                    for c in tree.children)
+            root_children_states = list(zip(*(ChildSumLSTMCell.fold_encode(fold, cells, inputs, c)[1].split(2)
+                                              for c in tree.children)))
         else:
-            root_children_states = fold.record(0, self.begin_state, 1).no_batch().split(2)
-
-        return fold.record(0, self, F, root_input, *root_children_states)
+            root_children_states = list(zip(*[fold.record(0, cells[0].begin_state, 1).no_batch().split(2)]))
+        num_children = len(tree.children)
+        return fold.record(0, ChildSumLSTMCell.cell_forward, cells[num_children], root_input, root_children_states)

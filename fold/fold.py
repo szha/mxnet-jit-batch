@@ -65,7 +65,7 @@ class Fold(Block):
             self.cached_nodes[op_sig][flat_args_sig] = node
         return self.cached_nodes[op_sig][flat_args_sig]
 
-    def forward(self, nodes, reset=True):
+    def __call__(self, nodes, reset=True):
         """Apply current fold to given nodes."""
         values = {}
         if reset:
@@ -116,7 +116,7 @@ class Fold(Block):
             result += 'Step %d:\n' % step
             for op_signature in self.steps[step]:
                 out = ',\n    '.join([str(arg.shape) if isinstance(arg, nd.NDArray) else str(arg)
-                                 for arg in zip(*self.steps[step][op_signature])[0]])
+                                 for arg in list(zip(*self.steps[step][op_signature]))[0]])
                 result += '    %s = %d x (%s)\n' % (
                     op_signature, len(self.steps[step][op_signature]), out)
         return _indent(s.format(steps=len(self.steps), stepstr=result), 4)

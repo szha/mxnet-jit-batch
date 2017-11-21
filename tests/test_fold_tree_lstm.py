@@ -36,6 +36,7 @@ def test_tree_lstm():
     rnn_hidden_size, sim_hidden_size, num_classes = 150, 50, 5
     net = SimilarityTreeLSTM(sim_hidden_size, rnn_hidden_size, 2413, 300, num_classes)
     net.initialize(mx.init.Xavier(magnitude=2.24))
+    net(l_sentences[0], r_sentences[0], l_trees[0], r_trees[0])
     net.embed.weight.set_data(mx.nd.random.uniform(shape=(2413, 300)))
 
     def verify(batch_size):
@@ -52,12 +53,12 @@ def test_tree_lstm():
             r_tree = r_trees[i]
 
             inputs.append((l_sent, r_sent, l_tree, r_tree))
-            z_fold = net.fold_encode(fold, mx.nd, l_sent, r_sent, l_tree, r_tree)
+            z_fold = net.fold_encode(fold, l_sent, r_sent, l_tree, r_tree)
             fold_preds.append(z_fold)
 
             if (i+1) % batch_size == 0 or (i+1) == num_samples:
                 fold_outs = fold([fold_preds])[0]
-                outs = mx.nd.concat(*[net(mx.nd, l_sent, r_sent, l_tree, r_tree)
+                outs = mx.nd.concat(*[net(l_sent, r_sent, l_tree, r_tree)
                                       for l_sent, r_sent, l_tree, r_tree in inputs], dim=0)
                 if not almost_equal(fold_outs.asnumpy(), outs.asnumpy()):
                     print(fold_preds)
