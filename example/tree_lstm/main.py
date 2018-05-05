@@ -100,9 +100,9 @@ logging.info('==> Size of test data    : %d ' % len(test_iter))
 
 net = SimilarityTreeLSTM(sim_hidden_size, rnn_hidden_size, vocab.size, vocab.embed.shape[1], num_classes)
 net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=context[0])
-l_tree, l_sent, r_tree, r_sent, _ = train_iter.next()
+sent, l_len, l_tree, r_tree, _ = train_iter.next()
 train_iter.reset()
-net(l_sent, r_sent, l_tree, r_tree)
+net(sent, l_len, l_tree, r_tree)
 net.embed.weight.set_data(vocab.embed.as_in_context(context[0]))
 
 # use pearson correlation and mean-square error for evaluation
@@ -136,9 +136,9 @@ def test(ctx, data_iter, best, mode='validation', num_iter=-1):
         fold_preds = []
         for j in tqdm(range(num_samples), desc='Testing in {} mode'.format(mode)):
             # get next batch
-            l_tree, l_sent, r_tree, r_sent, label = data_iter.next()
+            sent, l_len, l_tree, r_tree, label = data_iter.next()
             # forward calculation. the output is log probability
-            z = net.fold_encode(fold, l_sent, r_sent, l_tree, r_tree)
+            z = net.fold_encode(fold, sent, l_len, l_tree, r_tree)
             fold_preds.append(z)
             # update weight after every batch_size samples, or when reaches last sample
             if (j+1) % batch_size == 0 or (j+1) == num_samples:
@@ -146,8 +146,8 @@ def test(ctx, data_iter, best, mode='validation', num_iter=-1):
                 fold_preds = []
     else:
         for j in tqdm(range(num_samples), desc='Testing in {} mode'.format(mode)):
-            l_tree, l_sent, r_tree, r_sent, label = data_iter.next()
-            z = net(l_sent, r_sent, l_tree, r_tree)
+            sent, l_len, l_tree, r_tree, label = data_iter.next()
+            z = net(sent, l_len, l_tree, r_tree)
             preds.append(z)
 
     if mode == 'validation' and num_iter >= 0:
@@ -192,13 +192,13 @@ def train(epoch, ctx, train_data, dev_data):
         if opt.fold:
             for j in tqdm(range(num_samples), desc='Training epoch {}'.format(i)):
                 # get next batch
-                l_tree, l_sent, r_tree, r_sent, label = train_data.next()
+                sent, l_len, l_tree, r_tree, label = train_data.next()
                 with ag.record():
                     # forward calculation. the output is log probability
-                    z = net.fold_encode(fold, l_sent, r_sent, l_tree, r_tree)
+                    z = net.fold_encode(fold, sent, l_len, l_tree, r_tree)
                     fold_preds.append(z)
                     # calculate loss
-                    with l_sent.context:
+                    with sent.context:
                         label = to_target(label)
                     loss = fold.record(0, Loss, z, label)
                     losses.append(loss)
@@ -215,13 +215,13 @@ def train(epoch, ctx, train_data, dev_data):
         else:
             for j in tqdm(range(num_samples), desc='Training epoch {}'.format(i)):
                 # get next batch
-                l_tree, l_sent, r_tree, r_sent, label = train_data.next()
+                sent, l_len, l_tree, r_tree, label = train_data.next()
                 # use autograd to record the forward calculation
                 with ag.record():
                     # forward calculation. the output is log probability
-                    z = net(l_sent, r_sent, l_tree, r_tree)
+                    z = net(sent, l_len, l_tree, r_tree)
                     # calculate loss
-                    with l_sent.context:
+                    with sent.context:
                         label = to_target(label)
                     loss = Loss(z, label)
                     # backward calculation for gradients.

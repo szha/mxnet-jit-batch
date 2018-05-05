@@ -35,21 +35,19 @@ class SimilarityTreeLSTM(nn.Block):
         for c in self.cells.values():
             c.hybridize()
 
-    def forward(self, l_inputs, r_inputs, l_tree, r_tree):
-        l_len, r_len = len(l_inputs), len(r_inputs)
-        embeddings = self.embed(nd.concat(l_inputs, r_inputs, dim=0))
+    def forward(self, inputs, l_len, l_tree, r_tree):
+        embeddings = self.embed(inputs)
         l_embed = embeddings[:l_len]
-        r_embed = embeddings[l_len:(l_len+r_len)]
+        r_embed = embeddings[l_len:len(inputs)]
         lstate = ChildSumLSTMCell.encode(self.cells, l_embed, l_tree)[1][1]
         rstate = ChildSumLSTMCell.encode(self.cells, r_embed, r_tree)[1][1]
         output = self.similarity(lstate, rstate)
         return output
 
-    def fold_encode(self, fold, l_inputs, r_inputs, l_tree, r_tree):
-        l_len, r_len = len(l_inputs), len(r_inputs)
-        embeddings = self.embed(nd.concat(l_inputs, r_inputs, dim=0))
+    def fold_encode(self, fold, inputs, l_len, l_tree, r_tree):
+        embeddings = self.embed(inputs)
         l_embed = embeddings[:l_len]
-        r_embed = embeddings[l_len:(l_len+r_len)]
+        r_embed = embeddings[l_len:len(inputs)]
         lstate = ChildSumLSTMCell.fold_encode(fold, self.cells, l_embed, l_tree)[1][1]
         rstate = ChildSumLSTMCell.fold_encode(fold, self.cells, r_embed, r_tree)[1][1]
         out = fold.record(0, self.similarity, lstate, rstate)

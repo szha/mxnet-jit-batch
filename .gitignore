@@ -106,3 +106,5 @@ ENV/
 
 # cython
 *.c
+
+**/data/

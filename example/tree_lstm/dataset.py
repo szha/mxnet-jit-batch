@@ -139,8 +139,10 @@ class SICKDataIter(object):
         super(SICKDataIter, self).__init__()
         self.vocab = vocab
         self.num_classes = num_classes
-        self.l_sentences = self.read_sentences(os.path.join(path,'a.toks'))
-        self.r_sentences = self.read_sentences(os.path.join(path,'b.toks'))
+        self.sentences, self.l_len = \
+            list(zip(*((mx.nd.concat(l, r, dim=0), len(l)) for (l, r) in
+                        zip(self.read_sentences(os.path.join(path,'a.toks')),
+                            self.read_sentences(os.path.join(path,'b.toks'))))))
         self.l_trees = self.read_trees(os.path.join(path,'a.parents'))
         self.r_trees = self.read_trees(os.path.join(path,'b.parents'))
         self.labels = self.read_labels(os.path.join(path,'sim.txt'))
@@ -152,8 +154,8 @@ class SICKDataIter(object):
         if self.shuffle:
             mask = list(range(self.size))
             random.shuffle(mask)
-            self.l_sentences = [self.l_sentences[i] for i in mask]
-            self.r_sentences = [self.r_sentences[i] for i in mask]
+            self.sentences = [self.sentences[i] for i in mask]
+            self.l_len = [self.l_len[i] for i in mask]
             self.l_trees = [self.l_trees[i] for i in mask]
             self.r_trees = [self.r_trees[i] for i in mask]
             self.labels = [self.labels[i] for i in mask]
@@ -165,8 +167,7 @@ class SICKDataIter(object):
         return out
 
     def set_context(self, context):
-        self.l_sentences = [a.as_in_context(context) for a in self.l_sentences]
-        self.r_sentences = [a.as_in_context(context) for a in self.r_sentences]
+        self.sentences = [a.as_in_context(context) for a in self.sentences]
 
     def __len__(self):
         return self.size
@@ -174,10 +175,10 @@ class SICKDataIter(object):
     def __getitem__(self, index):
         l_tree = self.l_trees[index]
         r_tree = self.r_trees[index]
-        l_sent = self.l_sentences[index]
-        r_sent = self.r_sentences[index]
+        sent = self.sentences[index]
+        l_len = self.l_len[index]
         label = self.labels[index]
-        return (l_tree,l_sent,r_tree,r_sent,label)
+        return (sent, l_len, l_tree, r_tree, label)
 
     def read_sentence(self, line):
         indices = self.vocab.to_indices(line.split())

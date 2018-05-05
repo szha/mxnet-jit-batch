@@ -168,7 +168,9 @@ class Virtual(object):
             for i in self.split_idx:
                 out = out[i]
         if self.expand_axis is not None:
-            out = out.expand_dims(self.expand_axis)
+            shape = list(out.shape)
+            shape.insert(self.expand_axis, 1)
+            out = out.reshape(shape)
         return out
 
     def __repr__(self):

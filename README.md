@@ -53,7 +53,6 @@ The following results are obtained from MXNet Gluon implementation of [treelstm.
 The following speed benchmark is performed with the following settings:
 - Batch size: 256
 - MXNet:
-  - [mxnet-cu80mkl==0.12.0b20171030](https://pypi.python.org/pypi?:action=display&name=mxnet-cu80mkl&version=0.12.0b20171030) for GPU test.
   - [mxnet-mkl==0.12.0b20171030](https://pypi.python.org/pypi?:action=display&name=mxnet-mkl&version=0.12.0b20171030) for CPU test.
 
 
